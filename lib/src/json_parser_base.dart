@@ -4,12 +4,6 @@ class Awesome {
   bool get isAwesome => true;
 }
 
-class Lazy<T> {
-  final T Function() thunk;
-  T get value => this.thunk();
-  Lazy(this.thunk);
-}
-
 class Either<A, B> {
   final A? left;
   final B? right;
@@ -52,12 +46,14 @@ class JsonParseException extends FormatException {
 }
 
 class Parser<T> {
-  late final Lazy<T> _lazy;
-  Parser(T Function() thunk) {
-    this._lazy = Lazy(thunk);
-  }
+  final T Function() _thunk;
 
-  T force() => this._lazy.value;
+  Parser(this._thunk);
+
+  factory Parser.pure(T value) =>
+      Parser(() => value);
+
+  T force() => this._thunk();
 
   Either<JsonParseException, T> safe() {
     late final T result;
@@ -68,12 +64,6 @@ class Parser<T> {
       return Either.fromLeft(e);
     }
   }
-
-  Parser<B> map<B>(B Function(T t) f) =>
-      Parser(() => f(this.force()));
-
-  Parser<B> then<B>(Parser<B> Function(T t) f) =>
-      f(this.force());
 }
 
 Parser<int> parseInt(dynamic v) {
@@ -112,17 +102,17 @@ Parser<List<T>> parseArray<T>(Parser<T> Function(dynamic _) parseItem, dynamic v
 
 typedef JsonObject = Map<String, dynamic>;
 
-Parser<JsonObject> parseObject(dynamic v) {
+Parser<T> withObject<T>(dynamic v, Parser<T> Function(JsonObject o) parseObject) {
   return Parser(() {
     if (v is JsonObject) {
-      return v;
+      return parseObject(v).force();
     } else {
       throw JsonParseException('Expecting object, got ${v.runtimeType}: ${v}');
     }
   });
 }
 
-Parser<T> parseField<T>(String key, Parser<T> Function(dynamic _) parseValue, JsonObject o) {
+Parser<T> parseField<T>(JsonObject o, String key, Parser<T> Function(dynamic _) parseValue) {
   if (o.containsKey(key)) {
     return parseValue(o[key]);
   } else {
@@ -130,19 +120,3 @@ Parser<T> parseField<T>(String key, Parser<T> Function(dynamic _) parseValue, Js
   }
 }
 
-// Part of your application domain
-class StringAndInt {
-  final String s;
-  final int i;
-  StringAndInt(this.s, this.i);
-}
-
-Parser<StringAndInt> parseStringAndInt(dynamic v) {
-  return Parser(() {
-    final o = parseObject(v).force();
-    return StringAndInt(
-        parseField('pierre', parseString, o).force(),
-        parseField('int', parseInt, o).force(),
-    );
-  });
-}

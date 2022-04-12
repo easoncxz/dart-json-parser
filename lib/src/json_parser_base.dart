@@ -57,19 +57,23 @@ class Parser<T> {
     this._lazy = Lazy(thunk);
   }
 
-  T get force => this._lazy.value;
+  T force() => this._lazy.value;
 
-  Either<JsonParseException, T> get safe {
+  Either<JsonParseException, T> safe() {
     late final T result;
     try {
-      result = this.force;
+      result = this.force();
       return Either.fromRight(result);
     } on JsonParseException catch (e) {
       return Either.fromLeft(e);
     }
   }
 
-  // ... methods
+  Parser<B> map<B>(B Function(T t) f) =>
+      Parser(() => f(this.force()));
+
+  Parser<B> then<B>(Parser<B> Function(T t) f) =>
+      f(this.force());
 }
 
 Parser<int> parseInt(dynamic v) {
@@ -90,4 +94,55 @@ Parser<String> parseString(dynamic v) {
       throw JsonParseException('Expected String, got ${v.runtimeType}: ${v}');
     });
   }
+}
+
+Parser<List<T>> parseArray<T>(Parser<T> Function(dynamic _) parseItem, dynamic v) {
+  if (v is List) {
+    return Parser(() {
+      final List<T> acc = [];
+      for (final e in v) {
+        acc.add(parseItem(e).force());
+      }
+      return acc;
+    });
+  } else {
+    throw JsonParseException('Expected List, got ${v.runtimeType}: ${v}');
+  }
+}
+
+typedef JsonObject = Map<String, dynamic>;
+
+Parser<JsonObject> parseObject(dynamic v) {
+  return Parser(() {
+    if (v is JsonObject) {
+      return v;
+    } else {
+      throw JsonParseException('Expecting object, got ${v.runtimeType}: ${v}');
+    }
+  });
+}
+
+Parser<T> parseField<T>(String key, Parser<T> Function(dynamic _) parseValue, JsonObject o) {
+  if (o.containsKey(key)) {
+    return parseValue(o[key]);
+  } else {
+    throw JsonParseException('Expected to find key ${key} in object: ${o}');
+  }
+}
+
+// Part of your application domain
+class StringAndInt {
+  final String s;
+  final int i;
+  StringAndInt(this.s, this.i);
+}
+
+Parser<StringAndInt> parseStringAndInt(dynamic v) {
+  return Parser(() {
+    final o = parseObject(v).force();
+    return StringAndInt(
+        parseField('pierre', parseString, o).force(),
+        parseField('int', parseInt, o).force(),
+    );
+  });
 }

@@ -1,9 +1,8 @@
+import 'dart:convert' as Convert;
 import 'package:json_parser/json_parser.dart' as P;
 
 void main() {
-  var awesome = P.Awesome();
-  print('awesome: ${awesome.isAwesome}');
-  final parser = P.parseInt('"not int"');
-  print('int: ${parser}');
-  print('parser value: ${parser.safe}');
+  final decoder = Convert.JsonDecoder();
+  final j = '{ "pierre": "yes" }';
+  print('StringAndInt: ${P.parseStringAndInt(decoder.convert(j)).safe()}');
 }

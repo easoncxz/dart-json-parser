@@ -6,6 +6,8 @@ class StringAndInt {
   final String s;
   final int i;
   StringAndInt(this.s, this.i);
+  String toString() =>
+      'StringAndInt(${this.s}, ${this.i})';
 }
 
 // Definitive source of how to deserialise
@@ -19,6 +21,9 @@ P.Parser<StringAndInt> parseStringAndInt(dynamic v) =>
 
 void main() {
   final decoder = C.JsonDecoder();
-  final j = '{ "str-foobar": 5 }';
-  print('StringAndInt: ${parseStringAndInt(decoder.convert(j)).safe()}');
+  print('is null: ${parseStringAndInt(decoder.convert('null')).safe()}');
+  print('wrong top-level type: ${parseStringAndInt(decoder.convert('3')).safe()}');
+  print('missing key: ${parseStringAndInt(decoder.convert('{ "irrelevant": 5 }')).safe()}');
+  print('wrong type at value: ${parseStringAndInt(decoder.convert('{ "str-foobar": 100 }')).safe()}');
+  print('ok: ${parseStringAndInt(decoder.convert('{ "str-foobar": "something", "int67": 1 }')).safe()}');
 }

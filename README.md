@@ -109,5 +109,9 @@ the TypeScript ecosystem gives me confidence that such a type-safe parser could
 probably be written in even some languages that lean towards object-oriented
 programming a bit more.
 
+## License
+
+Mozilla Public License Version 2.0. See `LICENSE`.
+
 [aeson]: https://hackage.haskell.org/package/aeson
 [io-ts]: https://github.com/gcanti/io-ts
